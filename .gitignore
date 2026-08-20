@@ -1,6 +1,7 @@
 # Variables de entorno
 .env
 .env.*
+!.env.example
 
 # Node.js
 node_modules/
