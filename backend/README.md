@@ -1,98 +1,122 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# INVEMOTO — Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API REST en NestJS + TypeORM + MySQL. El esquema de base de datos vive en
+`../../Invemoto/invemoto_schema_mysql8.sql` (fuente de verdad) — este proyecto
+**no** genera ni modifica tablas automáticamente (`synchronize: false`).
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Módulos implementados hasta ahora
 
-## Description
+### Auth
+- `POST /auth/login` (HU-02, HU-03) — recibe `{ correo, password }`, devuelve `{ accessToken, expiresIn }`.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+### Empresa (solo rol `ADMIN`, HU-01/RF-01)
+- `POST /empresas` — crear una empresa cliente.
+- `GET /empresas` — listar todas.
+- `GET /empresas/:id`
+- `PATCH /empresas/:id` — editar datos o activar/desactivar con `{ "estado": "ACTIVO" | "INACTIVO" }`. No hay `DELETE` real (ver "Por qué no hay DELETE" abajo).
 
-## Project setup
+### Usuario (HU-01/RF-03)
+- `POST /usuarios`, `GET /usuarios`, `GET /usuarios/:id`, `PATCH /usuarios/:id`.
+- Reglas de permisos (aplicadas en el backend, no solo confiadas al frontend):
+  - **ADMIN** solo puede gestionar usuarios con rol `PROP`, de cualquier empresa. `GET /usuarios` requiere `?idEmpresa=` para listar los propietarios de esa empresa.
+  - **PROP** solo puede gestionar usuarios con rol `VEND` de **su propia empresa** (tomada del token, nunca del body/query). `GET /usuarios` sin parámetros devuelve directamente sus vendedores.
+  - **VEND** no tiene acceso a ninguna de estas rutas.
+
+### Por qué no hay `DELETE`
+"Eliminar" un usuario o una empresa siempre significa `PATCH` con `{ "estado": "INACTIVO" }`, nunca borrar la fila. Un usuario o empresa inactiva no puede volver a loguearse (`AuthService.login` ya lo valida). Esto evita romper la trazabilidad de ventas/movimientos ya registrados y coincide con el patrón que usa el resto del esquema SQL.
+
+### Todavía no existe
+Productos, inventario, ventas, devoluciones, establecimientos aliados, alertas, consultas, auditoría, reportes. Se irán agregando siguiendo el mismo patrón de carpetas: `src/modules/<dominio>/{entities,dto,*.controller,*.service,*.module}.ts`, con las entidades de TypeORM mapeadas 1:1 contra el `.sql` (nunca `synchronize: true`).
+
+## Puesta en marcha
+
+1. Instalar dependencias:
+   ```bash
+   npm install
+   ```
+
+2. Crear la base de datos ejecutando el script en tu cliente de MySQL (Workbench, CLI, etc.):
+   ```
+   Invemoto/invemoto_schema_mysql8.sql
+   ```
+
+3. Copiar el archivo de variables de entorno y completarlo con tus propias credenciales:
+   ```bash
+   cp .env.example .env
+   ```
+   Editá `DB_USER`, `DB_PASSWORD`, `JWT_SECRET`, y `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` (la cuenta compartida del equipo con rol ADMIN). **No compartas tu `.env` real** — cada quien crea el suyo a partir de `.env.example`.
+
+4. Crear la empresa "plataforma" y el usuario ADMIN inicial:
+   ```bash
+   npm run seed
+   ```
+
+5. Levantar el servidor en modo desarrollo:
+   ```bash
+   npm run start:dev
+   ```
+   Queda escuchando en `http://localhost:3000`, y se recarga solo al guardar cambios. Para pararlo: `Ctrl+C`.
+
+   Si alguna vez el comando se queda sin mostrar los logs de arranque, probablemente quedó un proceso de Node anterior ocupando el puerto 3000 — cerrá la terminal y abrí una nueva antes de reintentar.
+
+## Probar los endpoints
+
+Usamos la extensión **REST Client** de VS Code con un archivo `pruebas.http` (no incluido en el repo, cada quien arma el suyo — ver `.gitignore`) para probar manualmente. Ejemplo de flujo completo:
 
 ```bash
-$ npm install
+# 1. Login con la cuenta ADMIN sembrada
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"correo":"<SEED_ADMIN_EMAIL>","password":"<SEED_ADMIN_PASSWORD>"}'
+# -> { "accessToken": "...", "expiresIn": "8h" }
+
+# 2. Crear una empresa (con el accessToken del paso anterior)
+curl -X POST http://localhost:3000/empresas \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <ACCESS_TOKEN_ADMIN>" \
+  -d '{"nombre":"Moto Revolución Lujos y Accesorios S.A.S","nit":"900000000-1"}'
+# -> { "idEmpresa": 2, ... }
+
+# 3. Crear el usuario Propietario de esa empresa
+curl -X POST http://localhost:3000/usuarios \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <ACCESS_TOKEN_ADMIN>" \
+  -d '{"nombre":"Jaime Escobar","correo":"propietario@motorevolucion.com","password":"contrasena-segura","rol":"PROP","idEmpresa":2}'
+
+# 4. Login como Propietario y crear un Vendedor (con SU propio token, no el de ADMIN)
+curl -X POST http://localhost:3000/usuarios \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <ACCESS_TOKEN_PROP>" \
+  -d '{"nombre":"Vendedor Uno","correo":"vendedor@motorevolucion.com","password":"contrasena-segura","rol":"VEND"}'
+
+# 5. Listar los vendedores de esa empresa (con el token del Propietario)
+curl http://localhost:3000/usuarios \
+  -H "Authorization: Bearer <ACCESS_TOKEN_PROP>"
+
+# 6. Desactivar un usuario (mismo patrón para empresas, con /empresas/:id)
+curl -X PATCH http://localhost:3000/usuarios/<ID_USUARIO> \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <ACCESS_TOKEN_PROP>" \
+  -d '{"estado":"INACTIVO"}'
 ```
 
-## Compile and run the project
+## Estructura del proyecto
 
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+```
+src/
+  main.ts                    # bootstrap: CORS, ValidationPipe global
+  app.module.ts
+  config/typeorm.config.ts   # conexión MySQL (synchronize: false)
+  common/
+    enums/rol-codigo.enum.ts # ADMIN | PROP | VEND (debe coincidir con la tabla `rol`)
+    decorators/               # @Roles(), @CurrentUser()
+    guards/                   # JwtAuthGuard, RolesGuard
+  modules/
+    rol/                      # solo lectura
+    empresa/
+    usuario/
+    auth/
+  database/seed.ts            # npm run seed
 ```
 
-## Run tests
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Cada módulo de negocio sigue el mismo patrón: `entities/` (mapeo 1:1 a la tabla SQL), `dto/` (validación de entrada con `class-validator`), `*.service.ts` (reglas de negocio y acceso a datos), `*.controller.ts` (rutas HTTP y permisos).
