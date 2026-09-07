@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EmpresaEntity } from './entities/empresa.entity';
@@ -13,6 +17,10 @@ export class EmpresaService {
   ) {}
 
   async crear(dto: CreateEmpresaDto): Promise<EmpresaEntity> {
+    if (dto.nit) {
+      await this.verificarNitDisponible(dto.nit);
+    }
+
     const empresa = this.empresaRepository.create({
       nit: dto.nit ?? null,
       nombre: dto.nombre,
@@ -40,12 +48,26 @@ export class EmpresaService {
   ): Promise<EmpresaEntity> {
     const empresa = await this.buscarPorIdOrFail(idEmpresa);
 
+    if (dto.nit !== undefined && dto.nit !== empresa.nit) {
+      if (dto.nit) {
+        await this.verificarNitDisponible(dto.nit);
+      }
+      empresa.nit = dto.nit;
+    }
     if (dto.nombre !== undefined) empresa.nombre = dto.nombre;
-    if (dto.nit !== undefined) empresa.nit = dto.nit;
     if (dto.direccion !== undefined) empresa.direccion = dto.direccion;
     if (dto.telefono !== undefined) empresa.telefono = dto.telefono;
     if (dto.estado !== undefined) empresa.estado = dto.estado;
 
     return this.empresaRepository.save(empresa);
+  }
+
+  private async verificarNitDisponible(nit: string): Promise<void> {
+    const existente = await this.empresaRepository.findOneBy({ nit });
+    if (existente) {
+      throw new ConflictException(
+        'Ya existe una empresa registrada con ese NIT.',
+      );
+    }
   }
 }
