@@ -1,0 +1,96 @@
+### PLANTILLA de pruebas manuales (extensión REST Client de VS Code)
+### Copiá este archivo como "pruebas.http" (sin ".example") y completá tus propios
+### valores ahí. "pruebas.http" está en el .gitignore, así que tus tokens y
+### contraseñas nunca se suben al repositorio - cada quien tiene el suyo local.
+
+@baseUrl = http://localhost:3000
+
+### 1. Login como ADMIN (usá el correo/contraseña de TU .env: SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "correo": "PON_TU_SEED_ADMIN_EMAIL",
+  "password": "PON_TU_SEED_ADMIN_PASSWORD"
+}
+
+### --- Pegá acá el accessToken que te devuelva el paso 1 ---
+@tokenAdmin = PEGA_AQUI_EL_TOKEN
+
+### 2. Crear una empresa
+POST {{baseUrl}}/empresas
+Content-Type: application/json
+Authorization: Bearer {{tokenAdmin}}
+
+{
+  "nombre": "Moto Revolución Lujos y Accesorios S.A.S",
+  "nit": "900123456-1"
+}
+
+### 3. Listar todas las empresas
+GET {{baseUrl}}/empresas
+Authorization: Bearer {{tokenAdmin}}
+
+### 4. Crear el Propietario (poné el idEmpresa real que te devolvió el paso 2)
+POST {{baseUrl}}/usuarios
+Content-Type: application/json
+Authorization: Bearer {{tokenAdmin}}
+
+{
+  "nombre": "Jaime Escobar",
+  "correo": "propietario@motorevolucion.com",
+  "password": "ClaveSegura123",
+  "rol": "PROP",
+  "idEmpresa": 999
+}
+
+### 5. Login como el Propietario
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "correo": "propietario@motorevolucion.com",
+  "password": "ClaveSegura123"
+}
+
+### --- Pegá acá el accessToken del paso 5 ---
+@tokenProp = PEGA_AQUI_EL_TOKEN
+
+### 6. El Propietario crea un Vendedor
+POST {{baseUrl}}/usuarios
+Content-Type: application/json
+Authorization: Bearer {{tokenProp}}
+
+{
+  "nombre": "Vendedor Uno",
+  "correo": "vendedor@motorevolucion.com",
+  "password": "ClaveSegura123",
+  "rol": "VEND"
+}
+
+### 7. El Propietario lista sus vendedores
+GET {{baseUrl}}/usuarios
+Authorization: Bearer {{tokenProp}}
+
+### 8. Desactivar al vendedor (poné el idUsuario real que te devolvió el paso 6)
+PATCH {{baseUrl}}/usuarios/999
+Content-Type: application/json
+Authorization: Bearer {{tokenProp}}
+
+{
+  "estado": "INACTIVO"
+}
+
+### 9. El vendedor desactivado ya NO debería poder loguearse -> debe dar 401
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "correo": "vendedor@motorevolucion.com",
+  "password": "ClaveSegura123"
+}
+
+### 10. Prueba de seguridad: un Vendedor NO puede gestionar usuarios -> debe dar 403
+### (logueate primero con un vendedor activo y usá su token acá)
+GET {{baseUrl}}/usuarios
+Authorization: Bearer PEGA_TOKEN_DE_UN_VENDEDOR

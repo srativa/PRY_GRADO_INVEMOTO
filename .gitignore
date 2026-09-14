@@ -30,3 +30,7 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Pruebas manuales personales (REST Client) - contienen tokens/contraseñas reales
+pruebas.http
+!pruebas.http.example
