@@ -94,3 +94,67 @@ Content-Type: application/json
 ### (logueate primero con un vendedor activo y usá su token acá)
 GET {{baseUrl}}/usuarios
 Authorization: Bearer PEGA_TOKEN_DE_UN_VENDEDOR
+
+### --- Pegá acá el accessToken de un Vendedor activo (login como en el paso 5, con sus credenciales) ---
+@tokenVend = PEGA_AQUI_EL_TOKEN
+
+### 11. HU-?? El Propietario crea una categoría
+POST {{baseUrl}}/categorias
+Content-Type: application/json
+Authorization: Bearer {{tokenProp}}
+
+{
+  "nombre": "Cascos",
+  "descripcion": "Cascos de protección para motociclistas"
+}
+
+### 12. Listar categorías (Propietario o Vendedor)
+GET {{baseUrl}}/categorias
+Authorization: Bearer {{tokenProp}}
+
+### 13. HU-04 Registrar producto (poné el idCategoria real del paso 11)
+POST {{baseUrl}}/productos
+Content-Type: application/json
+Authorization: Bearer {{tokenProp}}
+
+{
+  "idCategoria": 999,
+  "codigoProducto": "CASCO-001",
+  "presentacion": "Unidad",
+  "nombre": "Casco MT Integral Talla M",
+  "descripcion": "Casco integral certificado, talla M",
+  "precioVenta": 250000,
+  "costo": 160000,
+  "stockInicial": 5,
+  "stockMinimo": 2
+}
+
+### 14. HU-06 Consultar inventario (listado completo, con stock incluido)
+GET {{baseUrl}}/productos
+Authorization: Bearer {{tokenVend}}
+
+### 15. Consultar un producto puntual (poné el idProducto real del paso 13)
+GET {{baseUrl}}/productos/999
+Authorization: Bearer {{tokenVend}}
+
+### 16. HU-05 Actualizar stock (p. ej. tras un conteo físico) — Vendedor puede hacerlo
+PATCH {{baseUrl}}/productos/999/stock
+Content-Type: application/json
+Authorization: Bearer {{tokenVend}}
+
+{
+  "stockActual": 4
+}
+
+### 17. Prueba de seguridad: un Vendedor NO puede crear productos -> debe dar 403
+POST {{baseUrl}}/productos
+Content-Type: application/json
+Authorization: Bearer {{tokenVend}}
+
+{
+  "idCategoria": 999,
+  "codigoProducto": "CASCO-002",
+  "nombre": "Otro casco",
+  "precioVenta": 200000,
+  "costo": 130000
+}

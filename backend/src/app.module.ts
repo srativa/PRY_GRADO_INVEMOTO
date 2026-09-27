@@ -6,6 +6,8 @@ import { RolModule } from './modules/rol/rol.module';
 import { EmpresaModule } from './modules/empresa/empresa.module';
 import { UsuarioModule } from './modules/usuario/usuario.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { CategoriaModule } from './modules/categoria/categoria.module';
+import { ProductoModule } from './modules/producto/producto.module';
 
 @Module({
   imports: [
@@ -19,6 +21,8 @@ import { AuthModule } from './modules/auth/auth.module';
     EmpresaModule,
     UsuarioModule,
     AuthModule,
+    CategoriaModule,
+    ProductoModule,
   ],
 })
 export class AppModule {}
