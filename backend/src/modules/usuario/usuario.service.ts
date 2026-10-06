@@ -186,10 +186,12 @@ export class UsuarioService {
     }
 
     if (creador.rol === RolCodigo.PROP) {
-      if (
-        target.rol.codigo !== RolCodigo.VEND ||
-        target.idEmpresa !== creador.idEmpresa
-      ) {
+      // Un usuario de otra empresa responde igual que uno inexistente (404),
+      // para no revelar a otras empresas qué ids existen.
+      if (target.idEmpresa !== creador.idEmpresa) {
+        throw new NotFoundException('Usuario no encontrado.');
+      }
+      if (target.rol.codigo !== RolCodigo.VEND) {
         throw new ForbiddenException(
           'Un PROP solo puede gestionar vendedores de su propia empresa.',
         );

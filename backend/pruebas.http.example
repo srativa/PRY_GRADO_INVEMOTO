@@ -73,6 +73,8 @@ GET {{baseUrl}}/usuarios
 Authorization: Bearer {{tokenProp}}
 
 ### 8. Desactivar al vendedor (poné el idUsuario real que te devolvió el paso 6)
+### OJO: si lo desactivás, los pasos de Vendedor de más abajo no funcionan.
+### Para seguir con los pasos 11 en adelante, volvé a activarlo con "estado": "ACTIVO".
 PATCH {{baseUrl}}/usuarios/999
 Content-Type: application/json
 Authorization: Bearer {{tokenProp}}
@@ -98,7 +100,11 @@ Authorization: Bearer PEGA_TOKEN_DE_UN_VENDEDOR
 ### --- Pegá acá el accessToken de un Vendedor activo (login como en el paso 5, con sus credenciales) ---
 @tokenVend = PEGA_AQUI_EL_TOKEN
 
-### 11. HU-?? El Propietario crea una categoría
+###############################################################################
+### CATEGORÍAS
+###############################################################################
+
+### 11. El Propietario crea una categoría
 POST {{baseUrl}}/categorias
 Content-Type: application/json
 Authorization: Bearer {{tokenProp}}
@@ -110,9 +116,23 @@ Authorization: Bearer {{tokenProp}}
 
 ### 12. Listar categorías (Propietario o Vendedor)
 GET {{baseUrl}}/categorias
-Authorization: Bearer {{tokenProp}}
+Authorization: Bearer {{tokenVend}}
 
-### 13. HU-04 Registrar producto (poné el idCategoria real del paso 11)
+### 13. Prueba de seguridad: un Vendedor NO puede crear categorías -> debe dar 403
+POST {{baseUrl}}/categorias
+Content-Type: application/json
+Authorization: Bearer {{tokenVend}}
+
+{
+  "nombre": "Guantes"
+}
+
+###############################################################################
+### PRODUCTOS
+###############################################################################
+
+### 14. HU-04 El Propietario registra un producto (poné el idCategoria real del paso 11)
+### Con stockInicial > 0 queda un movimiento "Stock inicial" en el historial.
 POST {{baseUrl}}/productos
 Content-Type: application/json
 Authorization: Bearer {{tokenProp}}
@@ -129,24 +149,7 @@ Authorization: Bearer {{tokenProp}}
   "stockMinimo": 2
 }
 
-### 14. HU-06 Consultar inventario (listado completo, con stock incluido)
-GET {{baseUrl}}/productos
-Authorization: Bearer {{tokenVend}}
-
-### 15. Consultar un producto puntual (poné el idProducto real del paso 13)
-GET {{baseUrl}}/productos/999
-Authorization: Bearer {{tokenVend}}
-
-### 16. HU-05 Actualizar stock (p. ej. tras un conteo físico) — Vendedor puede hacerlo
-PATCH {{baseUrl}}/productos/999/stock
-Content-Type: application/json
-Authorization: Bearer {{tokenVend}}
-
-{
-  "stockActual": 4
-}
-
-### 17. Prueba de seguridad: un Vendedor NO puede crear productos -> debe dar 403
+### 15. RF-06 El Vendedor también puede registrar productos (sin stock mínimo)
 POST {{baseUrl}}/productos
 Content-Type: application/json
 Authorization: Bearer {{tokenVend}}
@@ -154,7 +157,197 @@ Authorization: Bearer {{tokenVend}}
 {
   "idCategoria": 999,
   "codigoProducto": "CASCO-002",
+  "nombre": "Casco abatible Talla L",
+  "precioVenta": 320000,
+  "costo": 210000,
+  "stockInicial": 3
+}
+
+### 16. Prueba de seguridad: el Vendedor NO puede definir el stock mínimo al crear -> debe dar 403
+POST {{baseUrl}}/productos
+Content-Type: application/json
+Authorization: Bearer {{tokenVend}}
+
+{
+  "idCategoria": 999,
+  "codigoProducto": "CASCO-003",
+  "nombre": "Casco cross",
+  "precioVenta": 280000,
+  "costo": 180000,
+  "stockMinimo": 2
+}
+
+### 17. Prueba de validación: precio por encima del tope de $100.000.000 -> debe dar 400
+POST {{baseUrl}}/productos
+Content-Type: application/json
+Authorization: Bearer {{tokenProp}}
+
+{
+  "idCategoria": 999,
+  "codigoProducto": "CASCO-004",
+  "nombre": "Casco con precio absurdo",
+  "precioVenta": 100000001,
+  "costo": 160000
+}
+
+### 18. Prueba de validación: código repetido en la misma empresa -> debe dar 409
+POST {{baseUrl}}/productos
+Content-Type: application/json
+Authorization: Bearer {{tokenProp}}
+
+{
+  "idCategoria": 999,
+  "codigoProducto": "CASCO-001",
   "nombre": "Otro casco",
   "precioVenta": 200000,
   "costo": 130000
 }
+
+###############################################################################
+### CONSULTAR Y BUSCAR (HU-06, RF-08)
+###############################################################################
+
+### 19. Listado completo, con stock y costo incluidos (Propietario o Vendedor)
+GET {{baseUrl}}/productos
+Authorization: Bearer {{tokenVend}}
+
+### 20. Buscar por nombre (contiene el texto, sin distinguir mayúsculas)
+GET {{baseUrl}}/productos?nombre=casco
+Authorization: Bearer {{tokenVend}}
+
+### 21. Buscar por código
+GET {{baseUrl}}/productos?codigo=CASCO-00
+Authorization: Bearer {{tokenVend}}
+
+### 22. Filtrar por categoría (poné el idCategoria real)
+GET {{baseUrl}}/productos?idCategoria=999
+Authorization: Bearer {{tokenVend}}
+
+### 23. Filtrar por estado del producto: ACTIVO o INACTIVO
+GET {{baseUrl}}/productos?estado=INACTIVO
+Authorization: Bearer {{tokenProp}}
+
+### 24. Filtrar por disponibilidad: DISPONIBLE, AGOTADO o BAJO_STOCK
+GET {{baseUrl}}/productos?disponibilidad=BAJO_STOCK
+Authorization: Bearer {{tokenProp}}
+
+### 25. Filtros combinados
+GET {{baseUrl}}/productos?nombre=casco&estado=ACTIVO&disponibilidad=DISPONIBLE
+Authorization: Bearer {{tokenProp}}
+
+### 26. Prueba de validación: un valor de filtro inválido -> debe dar 400
+GET {{baseUrl}}/productos?disponibilidad=LLENO
+Authorization: Bearer {{tokenProp}}
+
+### 27. Consultar un producto puntual (poné el idProducto real del paso 14)
+GET {{baseUrl}}/productos/999
+Authorization: Bearer {{tokenVend}}
+
+###############################################################################
+### EDITAR, ACTIVAR Y DESACTIVAR (RF-06) - el Vendedor también puede
+###############################################################################
+
+### 28. Cambiar el precio de un producto
+PATCH {{baseUrl}}/productos/999
+Content-Type: application/json
+Authorization: Bearer {{tokenVend}}
+
+{
+  "precioVenta": 265000
+}
+
+### 29. Desactivar un producto (no se borra: queda INACTIVO)
+PATCH {{baseUrl}}/productos/999
+Content-Type: application/json
+Authorization: Bearer {{tokenVend}}
+
+{
+  "estado": "INACTIVO"
+}
+
+###############################################################################
+### STOCK E HISTORIAL (HU-05, RF-11, RF-14, RF-15)
+###############################################################################
+
+### 30. Ajustar el stock (p. ej. tras un conteo físico). El motivo es obligatorio.
+### Queda un movimiento en el historial con la diferencia y tu usuario.
+PATCH {{baseUrl}}/productos/999/stock
+Content-Type: application/json
+Authorization: Bearer {{tokenVend}}
+
+{
+  "stockActual": 4,
+  "motivo": "Conteo físico del sábado"
+}
+
+### 31. Prueba de validación: ajuste sin motivo -> debe dar 400
+PATCH {{baseUrl}}/productos/999/stock
+Content-Type: application/json
+Authorization: Bearer {{tokenVend}}
+
+{
+  "stockActual": 3
+}
+
+### 32. Prueba de validación: dejar el mismo stock que ya tiene -> debe dar 400
+PATCH {{baseUrl}}/productos/999/stock
+Content-Type: application/json
+Authorization: Bearer {{tokenVend}}
+
+{
+  "stockActual": 4,
+  "motivo": "Sin cambios"
+}
+
+### 33. Solo el Propietario puede cambiar el stock mínimo
+PATCH {{baseUrl}}/productos/999/stock-minimo
+Content-Type: application/json
+Authorization: Bearer {{tokenProp}}
+
+{
+  "stockMinimo": 3
+}
+
+### 34. Prueba de seguridad: el Vendedor NO puede cambiar el stock mínimo -> debe dar 403
+PATCH {{baseUrl}}/productos/999/stock-minimo
+Content-Type: application/json
+Authorization: Bearer {{tokenVend}}
+
+{
+  "stockMinimo": 1
+}
+
+### 35. El Propietario consulta el historial de movimientos del producto
+### (verás el "Stock inicial" y el ajuste del paso 30, con cantidad negativa y el nombre de quien lo hizo)
+GET {{baseUrl}}/productos/999/movimientos
+Authorization: Bearer {{tokenProp}}
+
+### 36. Prueba de seguridad: el Vendedor NO puede ver el historial -> debe dar 403
+GET {{baseUrl}}/productos/999/movimientos
+Authorization: Bearer {{tokenVend}}
+
+###############################################################################
+### AISLAMIENTO ENTRE EMPRESAS
+###############################################################################
+
+### Para estos pasos necesitás una SEGUNDA empresa con su propio Propietario:
+### creala como en los pasos 2 a 5 y pegá acá el token de ese segundo Propietario.
+@tokenPropOtraEmpresa = PEGA_AQUI_EL_TOKEN
+
+### 37. Un Propietario de OTRA empresa pide un producto ajeno -> debe dar 404 (no 403)
+GET {{baseUrl}}/productos/999
+Authorization: Bearer {{tokenPropOtraEmpresa}}
+
+### 38. Y tampoco puede ajustar su stock -> debe dar 404
+PATCH {{baseUrl}}/productos/999/stock
+Content-Type: application/json
+Authorization: Bearer {{tokenPropOtraEmpresa}}
+
+{
+  "stockActual": 0,
+  "motivo": "Intento de sabotaje"
+}
+
+### 39. Su listado de productos no incluye los de la otra empresa
+GET {{baseUrl}}/productos
+Authorization: Bearer {{tokenPropOtraEmpresa}}

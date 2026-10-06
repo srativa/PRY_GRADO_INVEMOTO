@@ -6,6 +6,7 @@ import { UsuarioEntity } from '../modules/usuario/entities/usuario.entity';
 import { CategoriaEntity } from '../modules/categoria/entities/categoria.entity';
 import { ProductoEntity } from '../modules/producto/entities/producto.entity';
 import { InventarioEntity } from '../modules/producto/entities/inventario.entity';
+import { MovimientoInventarioEntity } from '../modules/producto/entities/movimiento-inventario.entity';
 
 export function buildTypeOrmOptions(
   config: ConfigService,
@@ -17,7 +18,15 @@ export function buildTypeOrmOptions(
     username: config.get<string>('DB_USER', 'root'),
     password: config.get<string>('DB_PASSWORD', ''),
     database: config.get<string>('DB_NAME', 'invemoto'),
-    entities: [RolEntity, EmpresaEntity, UsuarioEntity, CategoriaEntity, ProductoEntity, InventarioEntity],
+    entities: [
+      RolEntity,
+      EmpresaEntity,
+      UsuarioEntity,
+      CategoriaEntity,
+      ProductoEntity,
+      InventarioEntity,
+      MovimientoInventarioEntity,
+    ],
     // El esquema ya existe en invemoto_schema_mysql8.sql (fuente de verdad).
     // TypeORM nunca debe generar ni alterar tablas automaticamente.
     synchronize: false,

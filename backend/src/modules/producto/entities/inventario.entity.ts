@@ -8,7 +8,7 @@ import {
 } from 'typeorm';
 import { ProductoEntity } from './producto.entity';
 
-@Entity ('inventario')
+@Entity('inventario')
 export class InventarioEntity {
   @PrimaryGeneratedColumn({
     name: 'id_inventario',

@@ -5,9 +5,11 @@ import {
   IsOptional,
   IsPositive,
   IsString,
-  Min,
+  Max,
   MaxLength,
+  Min,
 } from 'class-validator';
+import { PRECIO_MAXIMO } from '../producto.constants';
 
 export class UpdateProductoDto {
   @IsOptional()
@@ -38,11 +40,13 @@ export class UpdateProductoDto {
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
+  @Max(PRECIO_MAXIMO)
   precioVenta?: number;
 
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
+  @Max(PRECIO_MAXIMO)
   costo?: number;
 
   @IsOptional()

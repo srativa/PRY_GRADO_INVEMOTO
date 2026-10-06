@@ -1,6 +1,5 @@
 import {
   ConflictException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -18,7 +17,7 @@ export class CategoriaService {
     private readonly categoriaRepository: Repository<CategoriaEntity>,
   ) {}
 
-  // RF: solo el propietario organiza las categorías de su propio negocio.
+  // RF-05: solo el propietario organiza las categorías de su propio negocio.
   async crear(
     dto: CreateCategoriaDto,
     creador: AuthenticatedUser,
@@ -41,20 +40,18 @@ export class CategoriaService {
     });
   }
 
+  // Una categoría de otra empresa responde igual que una inexistente (404),
+  // para no revelar a otras empresas qué ids existen.
   async buscarPorIdConPermiso(
     id: number,
     usuario: AuthenticatedUser,
   ): Promise<CategoriaEntity> {
     const categoria = await this.categoriaRepository.findOneBy({
       idCategoria: id,
+      idEmpresa: usuario.idEmpresa,
     });
     if (!categoria) {
       throw new NotFoundException('Categoría no encontrada.');
-    }
-    if (categoria.idEmpresa !== usuario.idEmpresa) {
-      throw new ForbiddenException(
-        'La categoría no pertenece a tu empresa.',
-      );
     }
     return categoria;
   }

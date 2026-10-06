@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProductoEntity } from './entities/producto.entity';
 import { InventarioEntity } from './entities/inventario.entity';
+import { MovimientoInventarioEntity } from './entities/movimiento-inventario.entity';
 import { CategoriaEntity } from '../categoria/entities/categoria.entity';
 import { ProductoService } from './producto.service';
 import { ProductoController } from './producto.controller';
@@ -11,6 +12,7 @@ import { ProductoController } from './producto.controller';
     TypeOrmModule.forFeature([
       ProductoEntity,
       InventarioEntity,
+      MovimientoInventarioEntity,
       CategoriaEntity,
     ]),
   ],

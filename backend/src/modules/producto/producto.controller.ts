@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Get,
@@ -19,6 +18,8 @@ import { ProductoService } from './producto.service';
 import { CreateProductoDto } from './dto/create-producto.dto';
 import { UpdateProductoDto } from './dto/update-producto.dto';
 import { UpdateStockDto } from './dto/update-stock.dto';
+import { UpdateStockMinimoDto } from './dto/update-stock-minimo.dto';
+import { ListarProductosQueryDto } from './dto/listar-productos.dto';
 import type { AuthenticatedUser } from '../auth/jwt-payload.interface';
 
 @Controller('productos')
@@ -26,9 +27,10 @@ import type { AuthenticatedUser } from '../auth/jwt-payload.interface';
 export class ProductoController {
   constructor(private readonly productoService: ProductoService) {}
 
-  // HU-04 Registrar producto — solo el propietario define el catálogo.
+  // HU-04 Registrar producto (RF-06) — PROP y VEND. El vendedor no puede
+  // definir el stock mínimo al crear (lo valida el service).
   @Post()
-  @Roles(RolCodigo.PROP)
+  @Roles(RolCodigo.PROP, RolCodigo.VEND)
   crear(
     @Body() dto: CreateProductoDto,
     @CurrentUser() creador: AuthenticatedUser,
@@ -36,20 +38,15 @@ export class ProductoController {
     return this.productoService.crear(dto, creador);
   }
 
-  // HU-06 Consultar inventario — PROP y VEND, con filtro opcional por categoría.
+  // HU-06 Consultar inventario (RF-08) — PROP y VEND. Filtros opcionales por
+  // nombre, código, categoría, estado y disponibilidad.
   @Get()
   @Roles(RolCodigo.PROP, RolCodigo.VEND)
   listar(
     @CurrentUser() usuario: AuthenticatedUser,
-    @Query('idCategoria') idCategoriaRaw?: string,
+    @Query() filtros: ListarProductosQueryDto,
   ) {
-    const idCategoria = idCategoriaRaw
-      ? parseInt(idCategoriaRaw, 10)
-      : undefined;
-    if (idCategoriaRaw && Number.isNaN(idCategoria)) {
-      throw new BadRequestException('idCategoria debe ser un número.');
-    }
-    return this.productoService.listar(usuario, idCategoria);
+    return this.productoService.listar(usuario, filtros);
   }
 
   @Get(':id')
@@ -61,20 +58,31 @@ export class ProductoController {
     return this.productoService.buscarPorIdConPermiso(id, usuario);
   }
 
-  // RF: activar/desactivar un producto se hace con este mismo endpoint
-  // mandando { "estado": "INACTIVO" } o { "estado": "ACTIVO" } — no hay DELETE real.
-  @Patch(':id')
+  // RF-14 Historial de movimientos de inventario del producto — solo PROP.
+  @Get(':id/movimientos')
   @Roles(RolCodigo.PROP)
+  listarMovimientos(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() usuario: AuthenticatedUser,
+  ) {
+    return this.productoService.listarMovimientos(id, usuario);
+  }
+
+  // RF-06: modificar, activar o desactivar un producto se hace con este mismo
+  // endpoint mandando { "estado": "INACTIVO" } o { "estado": "ACTIVO" } — no hay
+  // DELETE real. PROP y VEND.
+  @Patch(':id')
+  @Roles(RolCodigo.PROP, RolCodigo.VEND)
   actualizar(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateProductoDto,
-    @CurrentUser() creador: AuthenticatedUser,
+    @CurrentUser() usuario: AuthenticatedUser,
   ) {
-    return this.productoService.actualizar(id, dto, creador);
+    return this.productoService.actualizar(id, dto, usuario);
   }
 
-  // HU-05 Actualizar stock — PROP y VEND (el vendedor corrige el conteo
-  // desde el punto de venta cuando lo detecta).
+  // HU-05 Ajustar stock — PROP y VEND. Exige motivo y deja el movimiento en el
+  // historial (RF-11, RF-14).
   @Patch(':id/stock')
   @Roles(RolCodigo.PROP, RolCodigo.VEND)
   actualizarStock(
@@ -83,5 +91,16 @@ export class ProductoController {
     @CurrentUser() usuario: AuthenticatedUser,
   ) {
     return this.productoService.actualizarStock(id, dto, usuario);
+  }
+
+  // RF-15 Stock mínimo — solo PROP.
+  @Patch(':id/stock-minimo')
+  @Roles(RolCodigo.PROP)
+  actualizarStockMinimo(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateStockMinimoDto,
+    @CurrentUser() usuario: AuthenticatedUser,
+  ) {
+    return this.productoService.actualizarStockMinimo(id, dto, usuario);
   }
 }

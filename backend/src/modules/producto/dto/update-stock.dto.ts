@@ -1,16 +1,27 @@
-import { IsInt, IsOptional, Min } from 'class-validator';
+import { Transform } from 'class-transformer';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
+import { recortarTexto } from '../../../common/transformers/recortar-texto.transformer';
+import { STOCK_MAXIMO } from '../producto.constants';
 
-// HU-05 Actualizar stock: el usuario corrige el valor absoluto del stock
-// (p. ej. tras un conteo físico) y opcionalmente el umbral de bajo stock.
-// El service exige que venga al menos uno de los dos campos.
+// HU-05 Actualizar stock: el usuario corrige el valor absoluto del stock (p. ej.
+// tras un conteo físico). Es un ajuste, así que el motivo es obligatorio: queda
+// guardado en el historial junto con el usuario que lo hizo (RF-11, RF-14).
 export class UpdateStockDto {
-  @IsOptional()
   @IsInt()
   @Min(0)
-  stockActual?: number;
+  @Max(STOCK_MAXIMO)
+  stockActual: number;
 
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  stockMinimo?: number;
+  @Transform(recortarTexto)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  motivo: string;
 }

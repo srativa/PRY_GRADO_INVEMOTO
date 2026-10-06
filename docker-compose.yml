@@ -3,11 +3,13 @@ services:
     image: mysql:8.0
     container_name: invemoto_mysql
     restart: unless-stopped
+    # Si falta el .env de la raiz, Docker se detiene con este mensaje en vez de
+    # arrancar MySQL con contrasenas en blanco.
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Falta el archivo .env en la raiz del repositorio. Copia .env.example a .env}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?Falta el archivo .env en la raiz del repositorio. Copia .env.example a .env}
+      MYSQL_USER: ${MYSQL_USER:?Falta el archivo .env en la raiz del repositorio. Copia .env.example a .env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Falta el archivo .env en la raiz del repositorio. Copia .env.example a .env}
     ports:
       - "3307:3306"
     volumes:
@@ -30,8 +32,16 @@ services:
     restart: unless-stopped
     env_file:
       - ./backend/.env
+    # La conexion a la base de datos sale del .env de la raiz y tiene prioridad
+    # sobre lo que diga backend/.env: asi las credenciales no se repiten ni
+    # pueden quedar desalineadas. Dentro de la red de Docker MySQL siempre
+    # escucha en el puerto 3306 (el 3307 es solo para tu equipo).
     environment:
       DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
     ports:
       - "3000:3000"
     volumes:
@@ -50,10 +60,16 @@ services:
       dockerfile: Dockerfile.dev
     container_name: invemoto_analytics
     restart: unless-stopped
+    # analytics/.env es opcional: si existe se usa, si no existe no pasa nada.
     env_file:
-      - ./analytics/.env
+      - path: ./analytics/.env
+        required: false
     environment:
       DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
     ports:
       - "8000:8000"
     volumes:

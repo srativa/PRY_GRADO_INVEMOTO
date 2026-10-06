@@ -1,122 +1,170 @@
 # INVEMOTO — Backend
 
-API REST en NestJS + TypeORM + MySQL. El esquema de base de datos vive en
-`../../Invemoto/invemoto_schema_mysql8.sql` (fuente de verdad) — este proyecto
-**no** genera ni modifica tablas automáticamente (`synchronize: false`).
+El servidor de INVEMOTO. Gestiona el inventario y los productos de varios negocios,
+cada uno aislado de los demás. Está hecho con NestJS, TypeORM y MySQL 8.
 
-## Módulos implementados hasta ahora
+> Hoy es solo el servidor (API). Las apps web y móvil usarán estas mismas rutas.
+> Para ver el proyecto completo y levantarlo con Docker, consulta el
+> [README de la raíz](../README.md).
 
-### Auth
-- `POST /auth/login` (HU-02, HU-03) — recibe `{ correo, password }`, devuelve `{ accessToken, expiresIn }`.
+## Qué puede hacer
 
-### Empresa (solo rol `ADMIN`, HU-01/RF-01)
-- `POST /empresas` — crear una empresa cliente.
-- `GET /empresas` — listar todas.
-- `GET /empresas/:id`
-- `PATCH /empresas/:id` — editar datos o activar/desactivar con `{ "estado": "ACTIVO" | "INACTIVO" }`. No hay `DELETE` real (ver "Por qué no hay DELETE" abajo).
+El sistema tiene tres tipos de usuario:
 
-### Usuario (HU-01/RF-03)
-- `POST /usuarios`, `GET /usuarios`, `GET /usuarios/:id`, `PATCH /usuarios/:id`.
-- Reglas de permisos (aplicadas en el backend, no solo confiadas al frontend):
-  - **ADMIN** solo puede gestionar usuarios con rol `PROP`, de cualquier empresa. `GET /usuarios` requiere `?idEmpresa=` para listar los propietarios de esa empresa.
-  - **PROP** solo puede gestionar usuarios con rol `VEND` de **su propia empresa** (tomada del token, nunca del body/query). `GET /usuarios` sin parámetros devuelve directamente sus vendedores.
-  - **VEND** no tiene acceso a ninguna de estas rutas.
+- **ADMIN**: el equipo INVEMOTO. Da de alta los negocios y a sus propietarios.
+- **Propietario (PROP)**: el dueño de un negocio. Maneja su equipo, su catálogo
+  y su inventario.
+- **Vendedor (VEND)**: el empleado. Consulta y mantiene el inventario.
 
-### Por qué no hay `DELETE`
-"Eliminar" un usuario o una empresa siempre significa `PATCH` con `{ "estado": "INACTIVO" }`, nunca borrar la fila. Un usuario o empresa inactiva no puede volver a loguearse (`AuthService.login` ya lo valida). Esto evita romper la trazabilidad de ventas/movimientos ya registrados y coincide con el patrón que usa el resto del esquema SQL.
+| Acción | ADMIN | PROP | VEND |
+|---|:-:|:-:|:-:|
+| Crear y gestionar negocios | Sí | | |
+| Gestionar usuarios | Solo propietarios | Solo sus vendedores | |
+| Crear y editar categorías | | Sí | |
+| Ver categorías | | Sí | Sí |
+| Crear, editar, activar y desactivar productos | | Sí | Sí |
+| Consultar y buscar productos (con costo) | | Sí | Sí |
+| Ajustar el stock | | Sí | Sí |
+| Definir el stock mínimo | | Sí | |
+| Ver el historial de movimientos | | Sí | |
 
-### Todavía no existe
-Productos, inventario, ventas, devoluciones, establecimientos aliados, alertas, consultas, auditoría, reportes. Se irán agregando siguiendo el mismo patrón de carpetas: `src/modules/<dominio>/{entities,dto,*.controller,*.service,*.module}.ts`, con las entidades de TypeORM mapeadas 1:1 contra el `.sql` (nunca `synchronize: true`).
+### Lo que conviene saber
 
-## Puesta en marcha
+- **Cada negocio ve solo lo suyo.** Si alguien pide algo de otro negocio, recibe
+  "no encontrado", igual que si no existiera.
+- **Nada se borra.** "Eliminar" es desactivar (`"estado": "INACTIVO"`), para no
+  perder el rastro de lo ya registrado. Un usuario o negocio desactivado no puede
+  iniciar sesión (si ya tenía una sesión abierta, termina cuando vence el token).
+- **Todo ajuste de stock deja huella.** Se guarda cuánto cambió, el motivo, quién
+  lo hizo y cuándo. El stock inicial de un producto también queda registrado.
+- **Hay topes.** Precio y costo: hasta $100.000.000 con 2 decimales. Stock: hasta
+  1.000.000 unidades.
 
-1. Instalar dependencias:
+## Puesta en marcha (sin Docker)
+
+Necesitas Node.js 20 o superior y MySQL 8.
+
+1. Instala las dependencias:
    ```bash
    npm install
    ```
-
-2. Crear la base de datos ejecutando el script en tu cliente de MySQL (Workbench, CLI, etc.):
-   ```
-   Invemoto/invemoto_schema_mysql8.sql
-   ```
-
-3. Copiar el archivo de variables de entorno y completarlo con tus propias credenciales:
+2. Crea la base de datos ejecutando `../database/init/invemoto_schema_mysql8.sql`
+   en tu cliente de MySQL.
+3. Crea tu archivo de configuración y complétalo (usuario y contraseña de MySQL,
+   un `JWT_SECRET` propio y la cuenta ADMIN inicial). **No compartas tu `.env`.**
    ```bash
    cp .env.example .env
    ```
-   Editá `DB_USER`, `DB_PASSWORD`, `JWT_SECRET`, y `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` (la cuenta compartida del equipo con rol ADMIN). **No compartas tu `.env` real** — cada quien crea el suyo a partir de `.env.example`.
-
-4. Crear la empresa "plataforma" y el usuario ADMIN inicial:
+4. Crea la empresa de la plataforma y la cuenta ADMIN:
    ```bash
    npm run seed
    ```
-
-5. Levantar el servidor en modo desarrollo:
+5. Enciende el servidor en `http://localhost:3000`:
    ```bash
    npm run start:dev
    ```
-   Queda escuchando en `http://localhost:3000`, y se recarga solo al guardar cambios. Para pararlo: `Ctrl+C`.
 
-   Si alguna vez el comando se queda sin mostrar los logs de arranque, probablemente quedó un proceso de Node anterior ocupando el puerto 3000 — cerrá la terminal y abrí una nueva antes de reintentar.
+## Primer recorrido
 
-## Probar los endpoints
+Todas las rutas, salvo el login, necesitan `Authorization: Bearer <token>`.
 
-Usamos la extensión **REST Client** de VS Code con un archivo `pruebas.http` (no incluido en el repo, cada quien arma el suyo — ver `.gitignore`) para probar manualmente. Ejemplo de flujo completo:
-
+**1. Iniciar sesión** (el token dura 8 horas):
 ```bash
-# 1. Login con la cuenta ADMIN sembrada
 curl -X POST http://localhost:3000/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"correo":"<SEED_ADMIN_EMAIL>","password":"<SEED_ADMIN_PASSWORD>"}'
-# -> { "accessToken": "...", "expiresIn": "8h" }
-
-# 2. Crear una empresa (con el accessToken del paso anterior)
-curl -X POST http://localhost:3000/empresas \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <ACCESS_TOKEN_ADMIN>" \
-  -d '{"nombre":"Moto Revolución Lujos y Accesorios S.A.S","nit":"900000000-1"}'
-# -> { "idEmpresa": 2, ... }
-
-# 3. Crear el usuario Propietario de esa empresa
-curl -X POST http://localhost:3000/usuarios \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <ACCESS_TOKEN_ADMIN>" \
-  -d '{"nombre":"Jaime Escobar","correo":"propietario@motorevolucion.com","password":"contrasena-segura","rol":"PROP","idEmpresa":2}'
-
-# 4. Login como Propietario y crear un Vendedor (con SU propio token, no el de ADMIN)
-curl -X POST http://localhost:3000/usuarios \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <ACCESS_TOKEN_PROP>" \
-  -d '{"nombre":"Vendedor Uno","correo":"vendedor@motorevolucion.com","password":"contrasena-segura","rol":"VEND"}'
-
-# 5. Listar los vendedores de esa empresa (con el token del Propietario)
-curl http://localhost:3000/usuarios \
-  -H "Authorization: Bearer <ACCESS_TOKEN_PROP>"
-
-# 6. Desactivar un usuario (mismo patrón para empresas, con /empresas/:id)
-curl -X PATCH http://localhost:3000/usuarios/<ID_USUARIO> \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <ACCESS_TOKEN_PROP>" \
-  -d '{"estado":"INACTIVO"}'
+  -d '{"correo":"propietario@motorevolucion.com","password":"ClaveSegura123"}'
 ```
 
-## Estructura del proyecto
+**2. Registrar un producto** (con 5 unidades iniciales):
+```bash
+curl -X POST http://localhost:3000/productos \
+  -H "Content-Type: application/json" -H "Authorization: Bearer <TOKEN>" \
+  -d '{"idCategoria":1,"codigoProducto":"CASCO-001","nombre":"Casco integral M",
+       "precioVenta":250000,"costo":160000,"stockInicial":5,"stockMinimo":2}'
+```
+
+**3. Buscar** cascos activos con poco stock:
+```bash
+curl "http://localhost:3000/productos?nombre=casco&estado=ACTIVO&disponibilidad=BAJO_STOCK" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+**4. Ajustar el stock** tras un conteo físico (indica el stock real y el motivo):
+```bash
+curl -X PATCH http://localhost:3000/productos/1/stock \
+  -H "Content-Type: application/json" -H "Authorization: Bearer <TOKEN>" \
+  -d '{"stockActual":4,"motivo":"Conteo físico del sábado"}'
+```
+
+**5. Ver el historial** (solo propietario):
+```bash
+curl http://localhost:3000/productos/1/movimientos \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+Para probar todo el sistema con calma, copia `pruebas.http.example` como
+`pruebas.http` (está en `.gitignore`) y úsalo con la extensión REST Client de VS Code.
+
+## Rutas
+
+| Método y ruta | Quién | Para qué |
+|---|---|---|
+| `POST /auth/login` | Todos | Iniciar sesión |
+| `POST /empresas` · `GET /empresas` | ADMIN | Crear y listar negocios |
+| `GET /empresas/:id` · `PATCH /empresas/:id` | ADMIN | Ver, editar, activar o desactivar |
+| `POST /usuarios` · `GET /usuarios` | ADMIN, PROP | Crear y listar usuarios |
+| `GET /usuarios/:id` · `PATCH /usuarios/:id` | ADMIN, PROP | Ver, editar, activar o desactivar |
+| `POST /categorias` · `PATCH /categorias/:id` | PROP | Crear y editar categorías |
+| `GET /categorias` · `GET /categorias/:id` | PROP, VEND | Consultar categorías |
+| `POST /productos` | PROP, VEND | Registrar un producto |
+| `GET /productos` | PROP, VEND | Listar y buscar (ver filtros) |
+| `GET /productos/:id` · `PATCH /productos/:id` | PROP, VEND | Ver, editar, activar o desactivar |
+| `PATCH /productos/:id/stock` | PROP, VEND | Ajustar el stock (con motivo) |
+| `PATCH /productos/:id/stock-minimo` | PROP | Definir el stock mínimo |
+| `GET /productos/:id/movimientos` | PROP | Historial de movimientos |
+
+**Filtros de `GET /productos`** (opcionales y combinables):
+`nombre`, `codigo` (contienen el texto), `idCategoria`, `estado`
+(`ACTIVO` o `INACTIVO`) y `disponibilidad`: `DISPONIBLE` (hay stock), `AGOTADO`
+(stock en cero) o `BAJO_STOCK` (stock menor o igual al mínimo).
+
+## Si algo falla
+
+| Código | Significa |
+|---|---|
+| 400 | Datos inválidos: falta un campo, un valor es incorrecto o supera un tope |
+| 401 | No hay sesión: falta el token, es inválido o venció |
+| 403 | Tu rol no tiene permiso para esa acción |
+| 404 | No existe, o pertenece a otro negocio |
+| 409 | Ya existe: NIT, correo, código de producto o nombre de categoría repetido |
+
+## Pruebas
+
+| Comando | Qué hace | Necesita MySQL |
+|---|---|:-:|
+| `npm test` | Pruebas unitarias | No |
+| `npm run test:e2e` | Pruebas de la API completa | Sí |
+| `npm run build` | Compila | No |
+| `npm run lint` | Revisa y corrige el formato | No |
+
+Si `npm test` se corta con un aviso de `watchman`, usa `npx jest --watchman=false`.
+
+## Estructura
 
 ```
 src/
-  main.ts                    # bootstrap: CORS, ValidationPipe global
-  app.module.ts
-  config/typeorm.config.ts   # conexión MySQL (synchronize: false)
-  common/
-    enums/rol-codigo.enum.ts # ADMIN | PROP | VEND (debe coincidir con la tabla `rol`)
-    decorators/               # @Roles(), @CurrentUser()
-    guards/                   # JwtAuthGuard, RolesGuard
-  modules/
-    rol/                      # solo lectura
-    empresa/
-    usuario/
-    auth/
-  database/seed.ts            # npm run seed
+  common/      roles, guards, decoradores y utilidades compartidas
+  config/      conexión a MySQL
+  database/    seed de la cuenta ADMIN
+  modules/     auth · empresa · usuario · categoria · producto
+test/          pruebas e2e
 ```
 
-Cada módulo de negocio sigue el mismo patrón: `entities/` (mapeo 1:1 a la tabla SQL), `dto/` (validación de entrada con `class-validator`), `*.service.ts` (reglas de negocio y acceso a datos), `*.controller.ts` (rutas HTTP y permisos).
+Cada módulo sigue el mismo patrón: `entities/` (tablas), `dto/` (validación de
+entrada), `*.service.ts` (reglas de negocio), `*.controller.ts` (rutas y permisos)
+y `*.spec.ts` (pruebas).
+
+## Qué falta
+
+Ingreso de mercancía y proveedores, ventas, devoluciones, consulta entre negocios
+aliados, alertas, predicción de abastecimiento y reportes.
