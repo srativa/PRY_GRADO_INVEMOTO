@@ -1,5 +1,5 @@
-// Deben coincidir exactamente con los CHECK de la tabla `movimiento_inventario`
-// (invemoto_schema_mysql8.sql: chk_movimiento_tipo y chk_movimiento_referencia).
+// Estos valores tienen que ser los mismos que acepta la tabla de movimientos
+// en la base de datos. Si se cambia uno aquí, hay que cambiarlo también allá.
 export enum TipoMovimiento {
   ENTRADA = 'ENTRADA',
   VENTA = 'VENTA',

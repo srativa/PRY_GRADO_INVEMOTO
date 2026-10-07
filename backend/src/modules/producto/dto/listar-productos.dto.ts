@@ -10,15 +10,17 @@ import {
 } from 'class-validator';
 import { recortarTexto } from '../../../common/transformers/recortar-texto.transformer';
 
-// Estados de disponibilidad (RF-08). Los filtros no son excluyentes entre sí:
-// un producto con stock 2 y mínimo 5 es a la vez DISPONIBLE y BAJO_STOCK.
+// Formas de filtrar según cuántas unidades quedan (RF-08). Un producto puede
+// estar en más de una: si tiene 2 unidades y su mínimo es 5, está
+// disponible y también bajo de stock.
 export enum DisponibilidadProducto {
-  DISPONIBLE = 'DISPONIBLE', // stock mayor a 0
-  AGOTADO = 'AGOTADO', // stock igual a 0
-  BAJO_STOCK = 'BAJO_STOCK', // stock menor o igual al mínimo configurado (RF-16)
+  DISPONIBLE = 'DISPONIBLE', // hay al menos una unidad
+  AGOTADO = 'AGOTADO', // no queda ninguna unidad
+  BAJO_STOCK = 'BAJO_STOCK', // quedan tantas unidades como el mínimo, o menos (RF-16)
 }
 
-// Filtros de GET /productos (RF-08). Todos son opcionales y se pueden combinar.
+// Filtros para buscar productos (RF-08). Ninguno es obligatorio y se pueden
+// usar varios a la vez.
 export class ListarProductosQueryDto {
   @IsOptional()
   @Transform(recortarTexto)

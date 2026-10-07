@@ -14,7 +14,7 @@ export class AuthService {
     private readonly configService: ConfigService,
   ) {}
 
-  // HU-02 (inicio de sesión) + HU-03 (validación de credenciales).
+  // Inicio de sesión y revisión del correo y la contraseña (HU-02 y HU-03).
   async login(
     dto: LoginDto,
   ): Promise<{ accessToken: string; expiresIn: string }> {
@@ -22,8 +22,9 @@ export class AuthService {
       dto.correo,
     );
 
-    // Mensaje genérico en todos los casos de fallo: no revelar si el correo
-    // existe o si fue la contraseña la que falló.
+    // Si algo falla, siempre se muestra el mismo mensaje. Así no se da
+    // ninguna pista de si el correo existe o de si lo que estaba mal era la
+    // contraseña.
     const credencialesInvalidas = () =>
       new UnauthorizedException('Correo o contraseña incorrectos.');
 

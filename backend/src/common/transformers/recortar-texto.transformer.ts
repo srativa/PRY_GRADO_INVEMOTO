@@ -1,5 +1,5 @@
-// Para usar con @Transform(): quita espacios al inicio y al final de un texto,
-// de modo que un valor con solo espacios cuente como vacío al validar.
+// Quita los espacios que sobran al inicio y al final de un texto. Así, si
+// alguien escribe solo espacios, el sistema lo toma como un campo vacío.
 export function recortarTexto({ value }: { value: unknown }): unknown {
   return typeof value === 'string' ? value.trim() : value;
 }

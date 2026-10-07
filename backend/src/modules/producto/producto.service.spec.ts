@@ -71,7 +71,8 @@ function crearInventario(sobrescribir: Partial<InventarioEntity> = {}) {
   } as InventarioEntity;
 }
 
-// Simula el QueryBuilder encadenable de TypeORM.
+// Imita la herramienta que arma las búsquedas en la base de datos, para poder
+// probar sin una base real.
 function crearConsultaMock(resultado: ProductoEntity[] = []) {
   return {
     leftJoinAndSelect: jest.fn().mockReturnThis(),
@@ -160,7 +161,7 @@ describe('ProductoService', () => {
 
   describe('crear', () => {
     beforeEach(() => {
-      productoRepository.findOneBy.mockResolvedValue(null); // código libre
+      productoRepository.findOneBy.mockResolvedValue(null); // nadie más está usando ese código
     });
 
     it('toma la empresa del token y crea producto e inventario juntos', async () => {

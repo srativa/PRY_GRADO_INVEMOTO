@@ -10,9 +10,9 @@ import {
 import { recortarTexto } from '../../../common/transformers/recortar-texto.transformer';
 import { STOCK_MAXIMO } from '../producto.constants';
 
-// HU-05 Actualizar stock: el usuario corrige el valor absoluto del stock (p. ej.
-// tras un conteo físico). Es un ajuste, así que el motivo es obligatorio: queda
-// guardado en el historial junto con el usuario que lo hizo (RF-11, RF-14).
+// Actualizar stock (HU-05): se indica cuántas unidades hay de verdad, por
+// ejemplo después de contar la mercancía. Como es un ajuste, hay que escribir
+// el motivo. Queda en el historial junto con quién lo hizo (RF-11, RF-14).
 export class UpdateStockDto {
   @IsInt()
   @Min(0)

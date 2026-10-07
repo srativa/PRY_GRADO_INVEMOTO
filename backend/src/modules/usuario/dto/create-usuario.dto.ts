@@ -21,16 +21,17 @@ export class CreateUsuarioDto {
 
   @IsString()
   @MinLength(8)
-  @MaxLength(72) // bcrypt ignora lo que exceda 72 bytes
+  @MaxLength(72) // si es más larga, el resto no se tendría en cuenta
   password: string;
 
-  // Rol que se le quiere asignar al usuario a crear. La combinación
-  // permitida (quien crea -> que rol puede asignar) la valida el service.
+  // Rol que tendrá el nuevo usuario. Más adelante se revisa si quien lo crea
+  // tiene permiso para darle ese rol.
   @IsIn([RolCodigo.PROP, RolCodigo.VEND])
   rol: RolCodigo.PROP | RolCodigo.VEND;
 
-  // Solo lo usa un ADMIN al crear el primer PROP de una empresa.
-  // Si quien llama es PROP, este campo se ignora: se usa su propia empresa (JWT).
+  // Solo lo usa el administrador cuando crea el primer propietario de una
+  // empresa. Si quien crea es un propietario, este dato no se tiene en
+  // cuenta: el nuevo usuario queda siempre en su propia empresa.
   @IsOptional()
   @IsInt()
   @IsPositive()

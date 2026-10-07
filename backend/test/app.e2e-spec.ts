@@ -4,8 +4,8 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 
-// Estas pruebas levantan la aplicación completa, así que necesitan MySQL
-// encendido y el .env configurado (igual que `npm run start:dev`).
+// Estas pruebas encienden el sistema completo, así que antes hay que tener
+// MySQL prendido y el archivo .env listo, igual que para "npm run start:dev".
 describe('API (e2e)', () => {
   let app: INestApplication<App>;
 
@@ -45,7 +45,7 @@ describe('API (e2e)', () => {
     });
   });
 
-  // Ninguna ruta de negocio debe responder sin un token válido.
+  // Nadie que no haya iniciado sesión debe poder consultar ni cambiar nada.
   describe('rutas protegidas sin token', () => {
     it.each([
       ['GET', '/usuarios'],

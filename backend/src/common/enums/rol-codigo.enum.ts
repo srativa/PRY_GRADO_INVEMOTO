@@ -1,5 +1,5 @@
-// Debe coincidir exactamente con los valores sembrados en la tabla `rol`
-// (invemoto_schema_mysql8.sql -> INSERT INTO rol ...).
+// Estos códigos tienen que ser iguales a los roles que se cargan en la base
+// de datos cuando se crea.
 export enum RolCodigo {
   ADMIN = 'ADMIN',
   PROP = 'PROP',

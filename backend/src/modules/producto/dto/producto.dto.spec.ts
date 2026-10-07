@@ -8,8 +8,8 @@ import { UpdateStockMinimoDto } from './update-stock-minimo.dto';
 import { ListarProductosQueryDto } from './listar-productos.dto';
 import { PRECIO_MAXIMO, STOCK_MAXIMO } from '../producto.constants';
 
-// Valida igual que el ValidationPipe global de main.ts y devuelve los campos
-// con error junto con la instancia ya transformada.
+// Revisa los datos de la misma forma que el sistema real, y devuelve qué
+// campos tienen errores y cómo quedaron los datos ya revisados.
 async function validar<T extends object>(
   clase: new () => T,
   datos: Record<string, unknown>,

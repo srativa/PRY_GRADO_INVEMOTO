@@ -27,8 +27,9 @@ export function buildTypeOrmOptions(
       InventarioEntity,
       MovimientoInventarioEntity,
     ],
-    // El esquema ya existe en invemoto_schema_mysql8.sql (fuente de verdad).
-    // TypeORM nunca debe generar ni alterar tablas automaticamente.
+    // Las tablas ya están definidas en el script SQL del proyecto, y ese
+    // script es el que manda. El sistema nunca debe crear ni modificar tablas
+    // por su cuenta.
     synchronize: false,
   };
 }

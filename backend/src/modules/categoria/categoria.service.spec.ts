@@ -126,10 +126,10 @@ describe('CategoriaService', () => {
 
     it('rechaza renombrar a un nombre que ya usa otra categoría', async () => {
       repository.findOneBy
-        .mockResolvedValueOnce(crearCategoria()) // buscarPorIdConPermiso
+        .mockResolvedValueOnce(crearCategoria()) // primero se busca la categoría que se va a editar
         .mockResolvedValueOnce(
           crearCategoria({ idCategoria: 8, nombre: 'Guantes' }),
-        ); // verificarNombreDisponible
+        ); // luego aparece otra categoría que ya usa ese nombre
 
       await expect(
         service.actualizar(3, { nombre: 'Guantes' }, propietario),

@@ -16,7 +16,8 @@ import { EmpresaService } from './empresa.service';
 import { CreateEmpresaDto } from './dto/create-empresa.dto';
 import { UpdateEmpresaDto } from './dto/update-empresa.dto';
 
-// Todo el módulo empresa es exclusivo del ADMIN (dueños de la plataforma).
+// Todo lo relacionado con empresas solo lo puede manejar el administrador de
+// la plataforma.
 @Controller('empresas')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(RolCodigo.ADMIN)
@@ -38,8 +39,9 @@ export class EmpresaController {
     return this.empresaService.buscarPorIdOrFail(id);
   }
 
-  // RF: activar/desactivar una empresa es este mismo endpoint con
-  // { "estado": "INACTIVO" } o { "estado": "ACTIVO" } — no hay DELETE real.
+  // Para activar o desactivar una empresa se usa esta misma opción de
+  // edición, enviando el estado ACTIVO o INACTIVO. Las empresas nunca se
+  // borran de verdad.
   @Patch(':id')
   actualizar(
     @Param('id', ParseIntPipe) id: number,

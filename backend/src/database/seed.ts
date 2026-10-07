@@ -1,7 +1,7 @@
-// Script de arranque (no forma parte de la app en runtime).
-// Uso: npm run seed
-// Crea, si no existen, la empresa "INVEMOTO Plataforma" y el usuario ADMIN
-// compartido por el equipo (correo/contraseña vienen de .env, nunca hardcodeados).
+// Este archivo no hace parte del sistema en funcionamiento: se ejecuta aparte
+// con "npm run seed". Crea la empresa "INVEMOTO Plataforma" y la cuenta de
+// administrador del equipo, si todavía no existen. El correo y la contraseña
+// se leen del archivo .env y nunca se escriben aquí.
 import 'reflect-metadata';
 import { config as loadEnv } from 'dotenv';
 import { DataSource } from 'typeorm';

@@ -30,8 +30,8 @@ import {
 } from '../../common/enums/movimiento-inventario.enum';
 import { AuthenticatedUser } from '../auth/jwt-payload.interface';
 
-// Forma pública de un movimiento del historial. Se arma a mano para no exponer
-// datos del usuario más allá de su id y nombre.
+// Así se muestra cada movimiento del historial. De la persona que lo hizo
+// solo aparecen su número y su nombre, nada más.
 export interface MovimientoRespuesta {
   idMovimiento: number;
   tipoMovimiento: string;
@@ -41,8 +41,9 @@ export interface MovimientoRespuesta {
   usuario: { idUsuario: number; nombre: string };
 }
 
-// Convierte un texto en un patrón LIKE "contiene", tratando %, _ y \ como
-// caracteres literales (si no, buscar "50%" coincidiría con cualquier cosa).
+// Prepara lo que se escribe en el buscador para encontrar los productos que
+// contengan ese texto. Los símbolos %, _ y \ se buscan tal cual; si no,
+// buscar "50%" mostraría cualquier producto.
 function patronContiene(texto: string): string {
   return `%${texto.replace(/[\\%_]/g, '\\$&')}%`;
 }
@@ -59,9 +60,10 @@ export class ProductoService {
     private readonly dataSource: DataSource,
   ) {}
 
-  // HU-04 Registrar producto. Crea producto + su fila de inventario (y, si hay
-  // stock inicial, su movimiento en el historial) en una sola transacción: un
-  // producto nunca debe existir sin inventario ni con stock sin historial.
+  // Registrar producto (HU-04). El producto, su inventario y, si empieza con
+  // unidades, su primer movimiento del historial se guardan juntos: o se
+  // guarda todo o no se guarda nada. Nunca puede quedar un producto sin
+  // inventario ni unidades sin historial.
   async crear(
     dto: CreateProductoDto,
     creador: AuthenticatedUser,
@@ -119,8 +121,8 @@ export class ProductoService {
     });
   }
 
-  // HU-06 Consultar inventario (RF-08). PROP y VEND ven el catálogo de su
-  // propia empresa, con el stock incluido, y pueden filtrarlo.
+  // Consultar inventario (HU-06, RF-08). El propietario y el vendedor ven los
+  // productos de su propia empresa con sus unidades, y pueden filtrarlos.
   async listar(
     usuario: AuthenticatedUser,
     filtros: ListarProductosQueryDto = {},
@@ -167,8 +169,9 @@ export class ProductoService {
     return consulta.getMany();
   }
 
-  // Un producto de otra empresa responde igual que uno inexistente (404), para
-  // no revelar a otras empresas qué ids existen.
+  // Si alguien pide un producto de otra empresa, el sistema responde como si
+  // no existiera. Así nadie puede averiguar qué datos tienen los demás
+  // negocios.
   async buscarPorIdConPermiso(
     id: number,
     usuario: AuthenticatedUser,
@@ -225,10 +228,10 @@ export class ProductoService {
     return this.productoRepository.save(producto);
   }
 
-  // HU-05 Actualizar stock. Es un ajuste: cambia el stock al valor indicado y
-  // deja un movimiento en el historial con la diferencia (con signo), el motivo
-  // y el usuario responsable. La fila de inventario se bloquea durante la
-  // transacción para que dos ajustes simultáneos no descuadren el historial.
+  // Actualizar stock (HU-05). Se pone el stock en la cantidad indicada, y en
+  // el historial queda cuánto subió o bajó, el motivo y quién lo hizo.
+  // Mientras se hace el cambio, el producto queda apartado para que, si dos
+  // personas ajustan el stock al mismo tiempo, las cuentas no se descuadren.
   async actualizarStock(
     id: number,
     dto: UpdateStockDto,
@@ -277,8 +280,8 @@ export class ProductoService {
     });
   }
 
-  // RF-15 Stock mínimo. Es un umbral de alerta, no un movimiento de mercancía,
-  // por eso no genera registro en el historial de movimientos.
+  // Stock mínimo (RF-15). Es solo el punto en el que el sistema avisa que
+  // queda poco; no mueve mercancía, por eso no aparece en el historial.
   async actualizarStockMinimo(
     id: number,
     dto: UpdateStockMinimoDto,
@@ -296,8 +299,8 @@ export class ProductoService {
     return this.dataSource.manager.save(InventarioEntity, inventario);
   }
 
-  // RF-14 Historial de movimientos de un producto, del más reciente al más
-  // antiguo (máximo MOVIMIENTOS_MAXIMOS registros).
+  // Historial de un producto (RF-14), del movimiento más reciente al más
+  // antiguo, sin pasar del máximo que está en producto.constants.ts.
   async listarMovimientos(
     id: number,
     usuario: AuthenticatedUser,

@@ -20,7 +20,8 @@ export class InventarioEntity {
   @Column({ name: 'id_producto', type: 'int', unsigned: true, unique: true })
   idProducto: number;
 
-  // Lado dueño de la relación 1:1 (la FK vive en esta tabla).
+  // Cada inventario pertenece a un solo producto, y es esta tabla la que
+  // guarda a qué producto corresponde.
   @OneToOne(() => ProductoEntity)
   @JoinColumn({ name: 'id_producto' })
   producto: ProductoEntity;

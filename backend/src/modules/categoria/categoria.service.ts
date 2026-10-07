@@ -17,7 +17,7 @@ export class CategoriaService {
     private readonly categoriaRepository: Repository<CategoriaEntity>,
   ) {}
 
-  // RF-05: solo el propietario organiza las categorías de su propio negocio.
+  // Solo el propietario puede organizar las categorías de su negocio (RF-05).
   async crear(
     dto: CreateCategoriaDto,
     creador: AuthenticatedUser,
@@ -32,16 +32,17 @@ export class CategoriaService {
     return this.categoriaRepository.save(categoria);
   }
 
-  // PROP y VEND consultan las categorías de su propia empresa (p. ej. para
-  // el selector de categoría al registrar un producto).
+  // El propietario y el vendedor pueden ver las categorías de su propia
+  // empresa, por ejemplo para elegir una al registrar un producto.
   async listar(usuario: AuthenticatedUser): Promise<CategoriaEntity[]> {
     return this.categoriaRepository.find({
       where: { idEmpresa: usuario.idEmpresa },
     });
   }
 
-  // Una categoría de otra empresa responde igual que una inexistente (404),
-  // para no revelar a otras empresas qué ids existen.
+  // Si alguien pide una categoría de otra empresa, el sistema responde como
+  // si no existiera. Así nadie puede averiguar qué datos tienen los demás
+  // negocios.
   async buscarPorIdConPermiso(
     id: number,
     usuario: AuthenticatedUser,

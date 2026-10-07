@@ -27,8 +27,8 @@ import { UsuarioEntity } from './entities/usuario.entity';
 export class UsuarioController {
   constructor(private readonly usuarioService: UsuarioService) {}
 
-  // HU-01 Registro de usuario. Quién puede crear a quién se resuelve en
-  // UsuarioService.resolverEmpresaDestino (ADMIN->PROP, PROP->VEND).
+  // Registro de usuario (HU-01). El administrador crea propietarios y el
+  // propietario crea vendedores; esa regla se revisa más adelante.
   @Post()
   async crear(
     @Body() dto: CreateUsuarioDto,
@@ -38,8 +38,9 @@ export class UsuarioController {
     return this.aRespuesta(usuario);
   }
 
-  // RF-03 "consultar" — ADMIN lista propietarios de la empresa indicada (?idEmpresa=),
-  // PROP siempre lista sus propios vendedores (se ignora cualquier idEmpresa recibido).
+  // Consultar usuarios (RF-03). El administrador ve los propietarios de la
+  // empresa que elija. El propietario siempre ve solo a sus vendedores,
+  // aunque pida otra empresa.
   @Get()
   async listar(
     @CurrentUser() creador: AuthenticatedUser,
@@ -65,8 +66,9 @@ export class UsuarioController {
     return this.aRespuesta(usuario);
   }
 
-  // RF-03 "activar y desactivar" se hace con este mismo endpoint mandando
-  // { "estado": "INACTIVO" } o { "estado": "ACTIVO" } — no hay DELETE real.
+  // Para activar o desactivar un usuario se usa esta misma opción de edición,
+  // enviando el estado ACTIVO o INACTIVO. Los usuarios nunca se borran de
+  // verdad (RF-03).
   @Patch(':id')
   async actualizar(
     @Param('id', ParseIntPipe) id: number,
@@ -77,7 +79,7 @@ export class UsuarioController {
     return this.aRespuesta(usuario);
   }
 
-  // Nunca se expone passwordHash en las respuestas.
+  // La contraseña guardada nunca se devuelve en ninguna respuesta.
   private aRespuesta(usuario: UsuarioEntity) {
     return {
       idUsuario: usuario.idUsuario,

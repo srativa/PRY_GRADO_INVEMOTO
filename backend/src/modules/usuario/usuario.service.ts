@@ -29,11 +29,11 @@ export class UsuarioService {
   ) {}
 
   /**
-   * Reglas de creación (RF-01/RF-03, RNF-02, RNF-03):
-   * - ADMIN crea usuarios con rol PROP, para la empresa que indique en el body.
-   * - PROP crea usuarios con rol VEND, siempre dentro de su propia empresa
-   *   (id_empresa se toma del JWT, nunca del body, para no permitir que un
-   *   propietario cree usuarios en otra empresa).
+   * Reglas para crear usuarios (RF-01, RF-03, RNF-02, RNF-03):
+   * - El administrador crea propietarios en la empresa que indique.
+   * - El propietario crea vendedores, siempre en su propia empresa. La
+   *   empresa se toma de su sesión y no de lo que envíe, para que nadie
+   *   pueda crear usuarios en un negocio ajeno.
    */
   async crear(
     dto: CreateUsuarioDto,
@@ -89,9 +89,9 @@ export class UsuarioService {
   }
 
   /**
-   * Reglas de consulta/edición (mismo espíritu que resolverEmpresaDestino):
-   * - ADMIN solo ve/edita usuarios con rol PROP (de cualquier empresa).
-   * - PROP solo ve/edita usuarios con rol VEND de su propia empresa.
+   * Reglas para consultar y editar usuarios (las mismas que para crearlos):
+   * - El administrador solo ve y edita propietarios, de cualquier empresa.
+   * - El propietario solo ve y edita a los vendedores de su empresa.
    */
   async listar(
     creador: AuthenticatedUser,
@@ -110,7 +110,7 @@ export class UsuarioService {
     }
 
     if (creador.rol === RolCodigo.PROP) {
-      // Se ignora cualquier idEmpresa recibido por query: siempre la propia.
+      // Siempre se usa la empresa de quien consulta, aunque pida otra.
       return this.usuarioRepository.find({
         where: {
           idEmpresa: creador.idEmpresa,
@@ -170,8 +170,8 @@ export class UsuarioService {
     return this.usuarioRepository.save(usuario);
   }
 
-  // Misma regla ADMIN<->PROP / PROP<->VEND usada al crear, reutilizada para
-  // listar, ver el detalle y editar.
+  // La misma regla de crear (administrador con propietarios, propietario con
+  // vendedores) se usa para listar, ver el detalle y editar.
   private verificarPermisoSobreUsuario(
     target: UsuarioEntity,
     creador: AuthenticatedUser,
@@ -186,8 +186,9 @@ export class UsuarioService {
     }
 
     if (creador.rol === RolCodigo.PROP) {
-      // Un usuario de otra empresa responde igual que uno inexistente (404),
-      // para no revelar a otras empresas qué ids existen.
+      // Si alguien pide un usuario de otra empresa, el sistema responde como
+      // si no existiera. Así nadie puede averiguar qué datos tienen los demás
+      // negocios.
       if (target.idEmpresa !== creador.idEmpresa) {
         throw new NotFoundException('Usuario no encontrado.');
       }
@@ -228,7 +229,7 @@ export class UsuarioService {
           'Un PROP solo puede crear usuarios con rol VEND.',
         );
       }
-      // Aislamiento multi-tenant: se ignora cualquier idEmpresa recibido en el body.
+      // Cada negocio solo ve lo suyo: si se envía otra empresa, se ignora.
       return creador.idEmpresa;
     }
 

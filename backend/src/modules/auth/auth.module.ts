@@ -16,9 +16,9 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.getOrThrow<string>('JWT_SECRET'),
-        // JWT_EXPIRES_IN viene del .env como string (ej. "8h"); @nestjs/jwt lo
-        // tipa como StringValue de la libreria "ms" para validar el formato en
-        // tiempo de compilacion, algo que no aplica a un valor leido en runtime.
+        // El tiempo que dura una sesión (por ejemplo "8h") se lee del archivo
+        // .env; si no está, dura 8 horas. Aquí se le indica al sistema que acepte
+        // ese valor tal como viene.
         signOptions: {
           expiresIn: config.get<string>(
             'JWT_EXPIRES_IN',

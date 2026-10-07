@@ -27,8 +27,8 @@ import type { AuthenticatedUser } from '../auth/jwt-payload.interface';
 export class ProductoController {
   constructor(private readonly productoService: ProductoService) {}
 
-  // HU-04 Registrar producto (RF-06) — PROP y VEND. El vendedor no puede
-  // definir el stock mínimo al crear (lo valida el service).
+  // Registrar producto (HU-04, RF-06). Lo pueden hacer el propietario y el
+  // vendedor, pero el vendedor no puede fijar el stock mínimo.
   @Post()
   @Roles(RolCodigo.PROP, RolCodigo.VEND)
   crear(
@@ -38,8 +38,8 @@ export class ProductoController {
     return this.productoService.crear(dto, creador);
   }
 
-  // HU-06 Consultar inventario (RF-08) — PROP y VEND. Filtros opcionales por
-  // nombre, código, categoría, estado y disponibilidad.
+  // Consultar inventario (HU-06, RF-08). El propietario y el vendedor pueden
+  // buscar por nombre, código, categoría, estado y disponibilidad.
   @Get()
   @Roles(RolCodigo.PROP, RolCodigo.VEND)
   listar(
@@ -58,7 +58,7 @@ export class ProductoController {
     return this.productoService.buscarPorIdConPermiso(id, usuario);
   }
 
-  // RF-14 Historial de movimientos de inventario del producto — solo PROP.
+  // Historial de movimientos de un producto (RF-14). Solo lo ve el propietario.
   @Get(':id/movimientos')
   @Roles(RolCodigo.PROP)
   listarMovimientos(
@@ -68,9 +68,9 @@ export class ProductoController {
     return this.productoService.listarMovimientos(id, usuario);
   }
 
-  // RF-06: modificar, activar o desactivar un producto se hace con este mismo
-  // endpoint mandando { "estado": "INACTIVO" } o { "estado": "ACTIVO" } — no hay
-  // DELETE real. PROP y VEND.
+  // Modificar, activar o desactivar un producto (RF-06). Se usa esta misma
+  // opción de edición, enviando el estado ACTIVO o INACTIVO; los productos
+  // nunca se borran de verdad. Lo pueden hacer el propietario y el vendedor.
   @Patch(':id')
   @Roles(RolCodigo.PROP, RolCodigo.VEND)
   actualizar(
@@ -81,8 +81,9 @@ export class ProductoController {
     return this.productoService.actualizar(id, dto, usuario);
   }
 
-  // HU-05 Ajustar stock — PROP y VEND. Exige motivo y deja el movimiento en el
-  // historial (RF-11, RF-14).
+  // Ajustar el stock (HU-05). Lo pueden hacer el propietario y el vendedor;
+  // siempre hay que escribir el motivo, y el cambio queda en el historial
+  // (RF-11, RF-14).
   @Patch(':id/stock')
   @Roles(RolCodigo.PROP, RolCodigo.VEND)
   actualizarStock(
@@ -93,7 +94,7 @@ export class ProductoController {
     return this.productoService.actualizarStock(id, dto, usuario);
   }
 
-  // RF-15 Stock mínimo — solo PROP.
+  // Stock mínimo de un producto (RF-15). Solo lo puede cambiar el propietario.
   @Patch(':id/stock-minimo')
   @Roles(RolCodigo.PROP)
   actualizarStockMinimo(

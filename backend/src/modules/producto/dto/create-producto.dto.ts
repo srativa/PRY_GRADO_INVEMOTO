@@ -43,16 +43,16 @@ export class CreateProductoDto {
   @Max(PRECIO_MAXIMO)
   costo: number;
 
-  // Con qué stock arranca el inventario del producto. Por defecto 0. Si es
-  // mayor a 0 queda registrado en el historial de movimientos.
+  // Con cuántas unidades empieza el producto. Si no se indica, empieza en 0.
+  // Si empieza con unidades, eso queda anotado en el historial.
   @IsOptional()
   @IsInt()
   @Min(0)
   @Max(STOCK_MAXIMO)
   stockInicial?: number;
 
-  // Solo el propietario puede definirlo (el service rechaza a un vendedor que
-  // lo envíe).
+  // Solo el propietario puede fijar este valor. Si un vendedor lo envía, el
+  // sistema lo rechaza.
   @IsOptional()
   @IsInt()
   @Min(0)

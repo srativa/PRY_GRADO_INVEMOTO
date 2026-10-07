@@ -1,7 +1,8 @@
 import { IsInt, Max, Min } from 'class-validator';
 import { STOCK_MAXIMO } from '../producto.constants';
 
-// RF-15: solo el propietario establece el umbral de bajo stock de un producto.
+// Solo el propietario fija la cantidad mínima a partir de la cual el sistema
+// avisa que queda poco de un producto (RF-15).
 export class UpdateStockMinimoDto {
   @IsInt()
   @Min(0)

@@ -3,8 +3,8 @@ services:
     image: mysql:8.0
     container_name: invemoto_mysql
     restart: unless-stopped
-    # Si falta el .env de la raiz, Docker se detiene con este mensaje en vez de
-    # arrancar MySQL con contrasenas en blanco.
+    # Si falta el archivo .env de la raíz, Docker se detiene y lo avisa, en
+    # lugar de encender MySQL sin contraseñas.
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Falta el archivo .env en la raiz del repositorio. Copia .env.example a .env}
       MYSQL_DATABASE: ${MYSQL_DATABASE:?Falta el archivo .env en la raiz del repositorio. Copia .env.example a .env}
@@ -32,10 +32,10 @@ services:
     restart: unless-stopped
     env_file:
       - ./backend/.env
-    # La conexion a la base de datos sale del .env de la raiz y tiene prioridad
-    # sobre lo que diga backend/.env: asi las credenciales no se repiten ni
-    # pueden quedar desalineadas. Dentro de la red de Docker MySQL siempre
-    # escucha en el puerto 3306 (el 3307 es solo para tu equipo).
+    # Los datos para conectarse a la base de datos salen del .env de la raíz y
+    # mandan sobre los de backend/.env. Así no hay que escribirlos dos veces ni
+    # hay riesgo de que no coincidan. Dentro de Docker, MySQL siempre usa el
+    # puerto 3306; el 3307 es solo para conectarse desde tu computador.
     environment:
       DB_HOST: mysql
       DB_PORT: 3306

@@ -61,7 +61,8 @@ export class ProductoEntity {
   @Column({ type: 'varchar', length: 20, default: 'ACTIVO' })
   estado: string;
 
-  // Lado inverso de la relación 1:1 — la FK vive en `inventario.id_producto`.
+  // Cada producto tiene un solo registro de inventario. El dato que los une se
+  // guarda en la tabla de inventario, no aquí.
   @OneToOne(() => InventarioEntity, (inventario) => inventario.producto)
   inventario: InventarioEntity;
 }

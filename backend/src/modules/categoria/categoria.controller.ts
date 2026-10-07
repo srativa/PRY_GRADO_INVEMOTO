@@ -47,8 +47,9 @@ export class CategoriaController {
     return this.categoriaService.buscarPorIdConPermiso(id, usuario);
   }
 
-  // RF: activar/desactivar una categoría se hace con este mismo endpoint
-  // mandando { "estado": "INACTIVO" } o { "estado": "ACTIVO" } — no hay DELETE real.
+  // Para activar o desactivar una categoría se usa esta misma opción de
+  // edición, enviando el estado ACTIVO o INACTIVO. Las categorías nunca se
+  // borran de verdad.
   @Patch(':id')
   @Roles(RolCodigo.PROP)
   actualizar(

@@ -13,8 +13,8 @@ import {
   TipoReferencia,
 } from '../../../common/enums/movimiento-inventario.enum';
 
-// Historial de movimientos de inventario (RF-11, RF-14, RNF-05): cada cambio de
-// stock deja aquí quién lo hizo, cuánto cambió, cuándo y por qué.
+// Historial del inventario: cada vez que cambia el stock, aquí queda anotado
+// quién lo hizo, cuánto cambió, cuándo y por qué (RF-11, RF-14, RNF-05).
 @Entity('movimiento_inventario')
 export class MovimientoInventarioEntity {
   @PrimaryGeneratedColumn({
@@ -44,7 +44,7 @@ export class MovimientoInventarioEntity {
   @Column({ name: 'tipo_movimiento', type: 'varchar', length: 30 })
   tipoMovimiento: TipoMovimiento;
 
-  // Con signo: positivo suma al stock, negativo resta.
+  // Si el número es positivo, entraron unidades; si es negativo, salieron.
   @Column({ type: 'int' })
   cantidad: number;
 
